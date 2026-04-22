@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DigiEmu Core Demo
 
-## Getting Started
+A demonstration of deterministic knowledge bundles with canonical verification.
 
-First, run the development server:
+## Overview
+
+This demo shows how a structured knowledge state can be:
+
+- captured in explicit semantic fields
+- transformed into a canonical representation
+- hashed with SHA-256
+- verified later for integrity
+- checked for drift or tampering
+
+The core idea is:
+
+**same structured input → same canonical state → same hash → same verifiable state**
+
+If the state is changed afterwards without recomputing the canonical representation and hash, verification fails.
+
+## Live Demo
+
+[Vercel Demo](https://YOUR-VERCEL-URL.vercel.app)
+
+## Repository
+
+[GitHub Repository](https://github.com/DigiEmu/demo)
+
+## What the Demo Shows
+
+The app demonstrates:
+
+- structured knowledge capture
+- canonical serialization
+- deterministic hashing
+- bundle verification
+- tamper / drift detection
+- separation between UI models and Core contract models
+- adapter-ready architecture for future DigiEmu Core integration
+
+## Concept
+
+The demo is based on the idea that AI systems should not only generate outputs, but should also be able to anchor those outputs to a **verifiable knowledge state**.
+
+Instead of treating knowledge as loose text or transient context, the system structures it into fields such as:
+
+- Meaning
+- Claim
+- Uncertainty
+- Provenance
+- Confidence
+- Tags
+- Event Timestamp
+
+That structured state is then serialized canonically and hashed.  
+This makes it possible to prove whether the knowledge state is still identical later, or whether it has changed.
+
+## Current Status
+
+This demo is **Core-aligned**, but it is **not yet running the full real DigiEmu Core runtime**.
+
+What is already implemented:
+
+- deterministic bundle construction
+- canonical JSON generation
+- SHA-256 hashing
+- verification logic
+- external Core bridge architecture
+- contract separation between UI and Core models
+
+What can be added later:
+
+- direct integration with real DigiEmu Core services
+- exact production bundle schemas
+- signatures
+- verifier reports
+- replay-based state reconstruction
+- compliance-oriented audit extensions
+
+## Modes
+
+The demo supports two modes:
+
+- `demo-local`
+- `core-http`
+
+### demo-local
+Uses the local fallback implementation.
+
+### core-http
+Uses the server bridge for external Core integration.  
+If configured, it can fall back to demo logic when the external Core service is unavailable.
+
+## Local Development
+
+Install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+npm install
