@@ -20,7 +20,7 @@ If the state is changed afterwards without recomputing the canonical representat
 
 ## Live Demo
 
-[Vercel Demo](https://demo-coral-gamma-24.vercel.app/))
+[Vercel Demo](https://demo-coral-gamma-24.vercel.app/)
 
 ## Repository
 
