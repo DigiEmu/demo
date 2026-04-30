@@ -182,26 +182,67 @@ export default function HomePage() {
     fileInputRef.current?.click();
   }
 
-  async function handleImportFile(file: File) {
-    try {
-      setIsBusy(true);
-      const raw = await readJsonFile(file);
-      const uiBundle = mapCoreBundleToUi(raw as CoreBundleV1);
+async function handleImportFile(file: File) {
+  try {
+    setIsBusy(true);
+    const raw = await readJsonFile(file);
 
-      saveBundle(uiBundle);
-      setBundle(uiBundle);
-      setVerifyResult(null);
-      setStatus("snapshot-imported");
-      setStatusMessage("Core-aligned bundle imported from JSON.");
-    } catch (error) {
-      setStatus("error");
-      setStatusMessage(
-        error instanceof Error ? error.message : "Import failed."
-      );
-    } finally {
-      setIsBusy(false);
+    let uiBundle: UiBundle;
+
+    if (
+      raw &&
+      typeof raw === "object" &&
+      "schema_version" in raw &&
+      (raw as { schema_version?: string }).schema_version === "core-bundle-v1"
+    ) {
+      uiBundle = mapCoreBundleToUi(raw as CoreBundleV1);
+    } else {
+      const imported = raw as any;
+
+      const adaptedInput: ComposeFormInput = {
+        title: imported.title ?? imported.experiment ?? "Imported Knowledge Snapshot",
+        content: JSON.stringify(imported, null, 2),
+        meaning:
+          "Imported external JSON snapshot. Preserved as deterministic knowledge content for hashing, verification and tamper detection.",
+        claim:
+          "This imported snapshot can be preserved as a deterministic knowledge artifact.",
+        uncertainty:
+          "The original schema may differ from DigiEmu Core bundle schema and is therefore embedded as preserved JSON content.",
+        provenance:
+          imported.observer
+            ? `Imported JSON observed by ${imported.observer}`
+            : "Imported JSON file",
+        confidence: "medium",
+        tags: [
+          imported.schema_version ?? "external-json",
+          imported.subject ?? "unknown-subject",
+          imported.observer ?? "unknown-observer"
+        ]
+          .filter(Boolean)
+          .join(", "),
+        eventTimestamp:
+          imported.created_at ?? new Date().toISOString()
+      };
+
+      const request = mapComposeToApiCreateRequest(adaptedInput, mode);
+      const response = await coreCreateBundle(request);
+      uiBundle = mapCoreBundleToUi(response.bundle);
     }
+
+    saveBundle(uiBundle);
+    setBundle(uiBundle);
+    setVerifyResult(null);
+    setStatus("snapshot-imported");
+    setStatusMessage("JSON imported and converted into a verifiable DigiEmu bundle.");
+  } catch (error) {
+    setStatus("error");
+    setStatusMessage(
+      error instanceof Error ? error.message : "Import failed."
+    );
+  } finally {
+    setIsBusy(false);
   }
+}
 
   const diffs: UiDiffField[] = useMemo(() => {
     if (!bundle || verifyResult?.ok !== false) return [];
