@@ -1,5 +1,5 @@
 import { canonicalJson } from "./canonical-json";
-import { makeBundleId, sha256 } from "./hash";
+import { sha256 } from "./hash";
 import type {
   ApiCreateBundleRequest,
   CoreBundleV1,
@@ -20,6 +20,11 @@ function normalizeTags(tags: string): string[] {
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);
+}
+
+function stableEntryForHash(entry: CoreCreateRequest["entry"]) {
+  const { event_timestamp, ...stableEntry } = entry;
+  return stableEntry;
 }
 
 export function mapComposeToCoreCreateRequest(
@@ -108,19 +113,21 @@ export async function buildLocalCoreBundle(
   request: CoreCreateRequest,
   mode: CoreMode
 ): Promise<CoreBundleV1> {
-  const bundleBase = {
+  const stableCanonicalSource = {
     schema_version: "core-bundle-v1" as const,
-    bundle_id: makeBundleId(),
-    created_at: new Date().toISOString(),
     mode,
-    entry: request.entry,
+    entry: stableEntryForHash(request.entry),
   };
 
-  const canonical = canonicalJson(bundleBase);
+  const canonical = canonicalJson(stableCanonicalSource);
   const hash = await sha256(canonical);
 
   return {
-    ...bundleBase,
+    schema_version: "core-bundle-v1",
+    bundle_id: `bundle-${hash.slice(0, 16)}`,
+    created_at: request.entry.event_timestamp,
+    mode,
+    entry: request.entry,
     canonical,
     hash_sha256: hash,
   };
@@ -131,10 +138,8 @@ export async function verifyLocalCoreBundle(
 ): Promise<CoreVerifyResponse> {
   const rebuiltCanonical = canonicalJson({
     schema_version: bundle.schema_version,
-    bundle_id: bundle.bundle_id,
-    created_at: bundle.created_at,
     mode: bundle.mode,
-    entry: bundle.entry,
+    entry: stableEntryForHash(bundle.entry),
   });
 
   const rebuiltHash = await sha256(rebuiltCanonical);
@@ -145,8 +150,8 @@ export async function verifyLocalCoreBundle(
     schema_version: "core-verify-response-v1",
     ok,
     reason: ok
-      ? "Bundle valid. Canonical representation and hash match."
-      : "Bundle invalid. Canonical representation or hash differs.",
+      ? "Bundle valid. Stable canonical knowledge representation and hash match."
+      : "Bundle invalid. Stable canonical knowledge representation or hash differs.",
     expected_hash: bundle.hash_sha256,
     actual_hash: rebuiltHash,
     canonical_match: canonicalMatch,
@@ -155,10 +160,14 @@ export async function verifyLocalCoreBundle(
 }
 
 export function diffUiBundle(bundle: UiBundle): UiDiffField[] {
-  let parsed: Partial<CoreBundleV1> | null = null;
+  let parsed: {
+    entry?: Partial<Omit<CoreBundleV1["entry"], "event_timestamp">>;
+  } | null = null;
 
   try {
-    parsed = JSON.parse(bundle.canonical) as Partial<CoreBundleV1>;
+    parsed = JSON.parse(bundle.canonical) as {
+      entry?: Partial<Omit<CoreBundleV1["entry"], "event_timestamp">>;
+    };
   } catch {
     return [
       {
@@ -180,7 +189,7 @@ export function diffUiBundle(bundle: UiBundle): UiDiffField[] {
     ];
   }
 
-  const after = {
+  const after = stableEntryForHash({
     title: bundle.title,
     content: bundle.content,
     meaning: bundle.meaning,
@@ -190,7 +199,7 @@ export function diffUiBundle(bundle: UiBundle): UiDiffField[] {
     confidence: bundle.confidence,
     tags: bundle.tags,
     event_timestamp: bundle.eventTimestamp,
-  };
+  });
 
   const fields = [
     "title",
@@ -201,7 +210,6 @@ export function diffUiBundle(bundle: UiBundle): UiDiffField[] {
     "provenance",
     "confidence",
     "tags",
-    "event_timestamp",
   ] as const;
 
   const diffs: UiDiffField[] = [];
